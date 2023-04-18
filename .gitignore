@@ -1,3 +1,15 @@
+# Ignore output files
+
+/figures/*
+!figures/README.md
+
+/data/*
+!data/README.md
+
+
+############################################
+# GitHub standard python ignores below
+############################################
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
