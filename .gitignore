@@ -3,6 +3,8 @@
 /figures/*
 !figures/README.md
 
+/data/*
+!data/README.md
 
 
 ############################################
