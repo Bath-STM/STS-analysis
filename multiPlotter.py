@@ -18,12 +18,6 @@ from scipy import ndimage
 import commonFunctions as cf
 
 
-# def see_channels(napObj):
-#     return napObj.signals.keys()
-
-# def extract_channel(napObj, chan):
-#    return napObj.signals.get(chan)
-
 def get_phase(filename):
     wSuff = filename.split('/')[-1]
     noSuff = wSuff.split('.d')[0]
@@ -51,35 +45,6 @@ def integrate_LI(lI, z):
     # print(runningIntegrand)
     # print(pointPairIntegral)
     return runningIntegrand, pointPairIntegral
-
-###################################
-# Functions for Tom's code, edited to new read-in setup
-
-def difference(A, I, li_int): # why is this squared??
-    return np.sum((np.array(I)-A*np.array(li_int))**2)
-
-# def plotkappa(ax, zdata, lIXdata, Idata, labl):
-def getkappa(ax, zdata, lIXdata, Idata):
-    li_arr = abs(lIXdata)
-    # Integrate the lock-in data from infinity
-    total = 0
-    li_int = [] # store the integrated data
-    h = abs(zdata[1]-zdata[0]) # width of the rectangles
-    for i in range(len(li_arr)-1, -1, -1): # decrease i
-        li_int.append(total)
-        total += li_arr[i]*h
-    li_int.reverse()
-
-    A = scipy.optimize.minimize(difference, 1/(10e-12), args=((Idata - np.mean(Idata[-10:-1]))/1e-12, np.array(li_int)/1e-12))
-    print(f'\nA = {A}')
-
-    offset = np.mean(Idata[-10:-1])/1e-12
-    kappa = (A.x*li_arr/(Idata/1e-12-offset))/(2) # why divide by 2?!? not /2I?
-    return kappa
-
-def fitfn(z, I0, kappa, offset):
-    return I0*np.exp(-2*kappa*z)+offset
-###################################
 
 def lockIn_investigate():
     # specObj  = nap.read.Spec('2023-02-16/Z-Spec_phase_-110.3_001.dat')
@@ -113,9 +78,7 @@ def lockIn_investigate():
 
         zData = cf.extract_channel(specObj, 'Z rel (m)')
         lIXdata = cf.extract_channel(specObj, 'LIX 1 omega (A)')
-        # print(lIXdata)
         lIXintegratedTotal, lIXintegratedPointPairs = integrate_LI(lIXdata*(10**12), zData*(10**12))
-        # sys.exit()
         lIYdata = cf.extract_channel(specObj, 'LIY 1 omega (A)')
         Idata = cf.extract_channel(specObj, 'Current (A)')
 
@@ -175,6 +138,7 @@ def lockIn_investigate():
     
     return
 #################################### end lockIn_investigate
+
 def get_osc_height(filename):
     wSuff = filename.split('/')[-1]
     noSuff = wSuff.split('.d')[0]
@@ -246,10 +210,8 @@ def kappa_plot():
     
     nFiles = len(datFiles)
     for datF in datFiles:
-        # print(datF)
+        
         height = get_osc_height(datF)
-        # print(height)
-        # sys.exit()
 
         specObj  = nap.read.Spec(datF)
 
@@ -292,11 +254,9 @@ def kappa_plot():
 
 def lDOS_plot():
     
-    waveTxtFiles = glob('2023-03-29/multi2_Inj_230329_6_2_003.xt')
+    waveTxtFiles = glob('data/2023-05-03/multi2_Inj_230503_4_*.txt')
     
-    # Average then smooth, then plot with offsets based on heights
-    
-    outerLDOS = []
+    outerLDOS = [] # hold the LDOS for each point in each experiment
     
     for wvTxtF in waveTxtFiles:
         try:
@@ -304,20 +264,23 @@ def lDOS_plot():
         except ValueError:
             print('Please check file path')
             # print(e)
+            
+        fPath = wvTxtF.split('.')[0]
+        fName = fPath.split('/')[-1]
         
         # find where current is below noise thresh 
         currentMask = abs(df['current']) < 5e-12
         # set current in this case to 0 as done in Feenstra, Phys. Rev. B, 1994 
         df['current'] = np.where(currentMask, 0, df['current'])
         
+        # setup figure to hold the IV, dI/dV, LDOS plots
         fig1 = plt.figure(1, figsize=(5.75, 8))
         ax_dIdV, ax_IV, ax_LDOS = fig1.subplots(3, 1, sharex=True)
         
         ax_IV.plot(df['bias'], 10e12*df['current']/df['bias'], label='Raw')
         
         # Still following Feenstra, convolve I/V with gaussian - width should be O(band gap)
-        # df['smoothCond'] = (ndimage.gaussian_filter1d(df['current']/df['bias'], 1)+5e-12)
-        df['smoothCond'] = (ndimage.gaussian_filter1d(df['current']/df['bias'], 3.2))
+        df['smoothCond'] = (ndimage.gaussian_filter1d(df['current']/df['bias'], 1.2))
         # print(df['smoothCond'].to_string())
         
         ax_IV.plot(df['bias'], 10e12*df['smoothCond'], label='Smoothed')
@@ -327,48 +290,43 @@ def lDOS_plot():
         fontP.set_size('x-small')
         ax_IV.legend(loc='lower right', prop=fontP)
         
-        # Not following feenstra, smooth dI/dV
+        # Not following Feenstra, smooth dI/dV
         df['smoothLIX'] = (ndimage.gaussian_filter1d(df['lIX'], 1))
         
         ax_dIdV.plot(df['bias'], df['lIX'])
-        ax_dIdV.set_ylabel('dI/dV')
+        ax_dIdV.set_ylabel('dI/dV (pA/V)')
         ax_dIdV.set_yscale('log')
         
-        # plt.plot(bias[filtermask], lIX[filtermask]/(current[filtermask]/bias[filtermask]))
-        ax_LDOS.plot(df['bias'], df['lIX']/df['smoothCond'])
+        lDOS = df['lIX']/df['smoothCond']
+        ax_LDOS.plot(df['bias'], lDOS)
         ax_LDOS.set_ylabel(r'(dI/dV)/$\overline{(I/V)}$')
-        ax_LDOS.set_ylim(-2, 2)
+        ax_LDOS.set_ylim(0, 10)
         
-        outerLDOS.append(df['lIX']/df['smoothCond']) # now better to make ldos var so not divide twice?
+        outerLDOS.append(lDOS)
         
         
+        plt.figure(1)
+        plt.xlabel('Bias (V)')
+        plt.savefig(f'figures/combined_lDOS_{fName}.png')
+        plt.close()
         
+        # print(df.to_string())
     
-    plt.figure(1)
-    # plt.ylabel(r'(dI/dV)/$\overline{(I/V)}$')
-    # plt.ylim(-5, 5)
+    # plot average LDOS
+    # first make list of lists into a df
+    # transpose df so each column is a single experiment
+    # doesn't strictly have to be done (would average over the other axis) but made sense to me 
+    lDOSdf = pd.DataFrame(outerLDOS).T
+    lDOSdf['mean'] = lDOSdf.mean(axis=1)
+    
+    
+    plt.figure(2)
+    plt.plot(df['bias'], lDOSdf['mean'])
+    plt.ylabel(r'(dI/dV)/$\overline{(I/V)}$')
     plt.xlabel('Bias (V)')
-    plt.savefig('../figures/combined_lDOS.png')
+    # plt.ylim(0, 15)
+    plt.savefig(f'figures/ave_lDOS.png')
     plt.close()
-    
-    # plt.figure(2)
-    # plt.ylabel('(I/V)')
-    # plt.xlabel('Bias (V)')
-    # fontP = FontProperties() # Making legend smaller
-    # fontP.set_size('x-small')
-    # plt.legend(loc='lower right', prop=fontP)
-    # plt.savefig('../figures/iV.png')
-    # plt.close()
-    
-    # plt.figure(3)
-    # plt.ylabel('dI/dV')
-    # plt.xlabel('Bias (V)')
-    # # fontP = FontProperties() # Making legend smaller
-    # # fontP.set_size('x-small')
-    # # plt.legend(loc='lower right', prop=fontP)
-    # plt.yscale('log')
-    # plt.savefig('../figures/dIdV.png')
-    # plt.close()
     
     return
 

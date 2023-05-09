@@ -6,6 +6,8 @@
 /data/*
 !data/README.md
 
+# Ignore Mac directory configuration file
+**/.DS_Store
 
 ############################################
 # GitHub standard python ignores below
