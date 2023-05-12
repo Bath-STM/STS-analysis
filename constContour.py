@@ -32,13 +32,18 @@ def findRamp():
         dV_Fwd = np.diff(biasDataFwd)
         
         
-        print(dz_Fwd)
+        # print(dz_Fwd)
         
         plt.figure(1)
         plt.plot(biasDataFwd[1:], dz_Fwd/dV_Fwd)
         # plt.yscale('log')
         # plt.ylim(bottom=10e-2)
-        plt.hlines(np.mean(dz_Fwd[25:]/dV_Fwd[25:]), biasDataFwd[26], biasDataFwd[-1], 'k', '--')
+        gradients = np.gradient(10e12*zDataFwd)#, biasDataFwd[1]-biasDataFwd[0])
+        dz_dV = gradients / dV_Fwd[0]
+        print(gradients)
+        print(dz_dV)
+        # plt.hlines(np.mean(np.gradient(zDataFwd), biasDataFwd[1]-biasDataFwd[0]), biasDataFwd, biasDataFwd, 'k', '--')
+        # plt.hlines(np.mean(dz_Fwd[25:]/dV_Fwd[25:]), biasDataFwd[26], biasDataFwd[-1], 'k', '--')
         plt.savefig('figures/dzdV_constContour.png')
         plt.close()
         
