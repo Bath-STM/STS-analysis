@@ -1,54 +1,57 @@
-from curses.panel import bottom_panel
 from glob import glob
 import nanonispy as nap
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import pandas as pd
-import scipy
 from scipy.optimize import curve_fit
 import sys
 import numpy as np
-import cycler
 from matplotlib.font_manager import FontProperties
 
 import commonFunctions as cf
 
 def findRamp():
     
-    datFiles = glob('data/2023-05-10/IV_modA_0mV_FC_001.dat')
+    datFiles = glob('data/2023-05-19/IV_00*.dat')
+    
+    # setup figure to hold the IV, dI/dV, LDOS plots
+    fig1 = plt.figure(1, figsize=(7, 8))
+    ax_IV, ax_zV, ax_dzdV = fig1.subplots(3, 1, sharex=True)
     
     for datF in datFiles:
         
         specObj  = nap.read.Spec(datF)
         
-        print(type(specObj))
-        
         biasDataFwd = cf.extract_channel(specObj, 'Bias (V)')
         biasDataBwd = cf.extract_channel(specObj, 'Bias [bwd] (V)')
         zDataFwd = cf.extract_channel(specObj, 'Z (m)')
         zDataBwd = cf.extract_channel(specObj, 'Z [bwd] (m)')
+        currentDataFwd = cf.extract_channel(specObj, 'Current (A)')
+        currentDataBwd = cf.extract_channel(specObj, 'Current [bwd] (A)')
         
-        dz_Fwd = np.diff(10e12*zDataFwd)
-        dV_Fwd = np.diff(biasDataFwd)
+        # plot I-V spectrum 
+        ax_IV.plot(biasDataFwd, 1e12*currentDataFwd)
+        ax_IV.set_ylabel('Current (pA)')
         
+        # plot z-V spectrum
+        ax_zV.plot(biasDataFwd, 1e10*zDataFwd)
+        ax_zV.set_ylabel('z height (Å)')
         
-        # print(dz_Fwd)
+        # plot dz/dV as function of V
+        # first find dz/dV at each point, normalise here as constant dV.
+        dz_dV = np.gradient(zDataFwd, biasDataFwd[1]-biasDataFwd[0])
+        # then find average (ramp) value
+        meanHeight = np.mean(dz_dV)
+        # meanHeight = np.mean(dz_dV[25:])
+        # finally plot
+        ax_dzdV.plot(biasDataFwd, 1e12*dz_dV)
+        ax_dzdV.set_xlabel('Bias (V)')
+        ax_dzdV.set_ylabel('dz/dV (pm/V)')
+        ax_dzdV.hlines(1e12*meanHeight, biasDataFwd[0], biasDataFwd[-1], 'k', '--', label=f'{round(1e12*meanHeight)} pm/V')
+        # ax_dzdV.hlines(1e12*meanHeight, biasDataFwd[25], biasDataFwd[-1], 'k', '--', label=f'{round(1e12*meanHeight)} pm/V')
+        ax_dzdV.legend()
         
-        plt.figure(1)
-        plt.plot(biasDataFwd[1:], dz_Fwd/dV_Fwd)
-        # plt.yscale('log')
-        # plt.ylim(bottom=10e-2)
-        gradients = np.gradient(10e12*zDataFwd)#, biasDataFwd[1]-biasDataFwd[0])
-        dz_dV = gradients / dV_Fwd[0]
-        print(gradients)
-        print(dz_dV)
-        # plt.hlines(np.mean(np.gradient(zDataFwd), biasDataFwd[1]-biasDataFwd[0]), biasDataFwd, biasDataFwd, 'k', '--')
-        # plt.hlines(np.mean(dz_Fwd[25:]/dV_Fwd[25:]), biasDataFwd[26], biasDataFwd[-1], 'k', '--')
-        plt.savefig('figures/dzdV_constContour.png')
-        plt.close()
+    plt.savefig('figures/dzdV_constContour.png')
+    plt.close()
         
-    
-    
     return
 
 
