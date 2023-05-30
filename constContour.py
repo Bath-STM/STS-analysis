@@ -1,3 +1,7 @@
+#########################################################
+# Script to plot the constant current contour. 
+# Used with I-V STS data taken with the feedback loop ON. 
+########################################################
 from glob import glob
 import nanonispy as nap
 import matplotlib.pyplot as plt
