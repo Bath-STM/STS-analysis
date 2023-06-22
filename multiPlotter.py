@@ -254,7 +254,7 @@ def kappa_plot():
 
 def lDOS_plot():
     
-    waveTxtFiles = glob('data/2023-05-03/multi2_Inj_230503_4_*.txt')
+    waveTxtFiles = glob('data/2023-06-20/multi2_Inj_230620_6_*.txt')
     
     outerLDOS = [] # hold the LDOS for each point in each experiment
     
@@ -267,6 +267,7 @@ def lDOS_plot():
             
         fPath = wvTxtF.split('.')[0]
         fName = fPath.split('/')[-1]
+        aveFileName = fName.split("_")[2] + '_' + fName.split("_")[3]
         
         # find where current is below noise thresh 
         currentMask = abs(df['current']) < 5e-12
@@ -325,7 +326,7 @@ def lDOS_plot():
     plt.ylabel(r'(dI/dV)/$\overline{(I/V)}$')
     plt.xlabel('Bias (V)')
     # plt.ylim(0, 15)
-    plt.savefig(f'figures/ave_lDOS.png')
+    plt.savefig(f'figures/ave_lDOS_{aveFileName}.png')
     plt.close()
     
     return
