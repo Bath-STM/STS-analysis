@@ -4,7 +4,6 @@
 # See blow click command for CLI example command.
 # Option to plot as separate plots or combined
 ########################################################
-from email.policy import default
 import sys
 from glob import glob
 
