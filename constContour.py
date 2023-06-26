@@ -1,9 +1,10 @@
 #########################################################
 # Script to plot the constant current contour. 
 # Used with I-V STS data taken with the feedback loop ON. 
+# See blow click command for CLI example command.
+# Option to plot as separate plots or combined
 ########################################################
 from email.policy import default
-from os import sep
 import sys
 from glob import glob
 
@@ -12,24 +13,28 @@ import matplotlib.pyplot as plt
 import nanonispy as nap
 import numpy as np
 from matplotlib.font_manager import FontProperties
-from scipy.optimize import curve_fit
 
 import commonFunctions as cf
 
 
-def findRamp(infile, separate, outStub):
+def findRamp(infile, separate, outstub):
     
-    # datFiles = glob('data/2023-06-20/IV_*.dat')
-    # datFiles = ['IV_003.dat', 'IV_004.dat', 'IV_005.dat']
-    print(infile)
-    sys.exit()
+    # Messy little section to deal with the combination of wild cards and multiple fully named files
+    datFiles = []
+    print(f'infile: {infile}')
+    for inF in infile:
+        inF = glob(inF)
+        for f in inF:
+            datFiles.append(f)
+    # sys.exit()
     
     # setup figure to hold the IV, dI/dV, LDOS plots
     fig1 = plt.figure(1, figsize=(7, 8))
     ax_IV, ax_zV, ax_dzdV = fig1.subplots(3, 1, sharex=True)
     
-    print(datFiles)
     for datF in datFiles:
+        
+        print(f'datF: {datF}')
         
         expStub = datF.split('_')[-1]
         expNum = expStub.split('.')[0]
@@ -66,26 +71,26 @@ def findRamp(infile, separate, outStub):
         ax_dzdV.legend()
         
         if separate:
-            plt.savefig(f'figures/dzdV_constContour_{outStub}_{expNum}.png')
+            plt.savefig(f'figures/dzdV_constContour_{outstub}_{expNum}.png')
             ax_IV.cla()
             ax_zV.cla()
             ax_dzdV.cla()
         
     if not separate:
-        plt.savefig(f'figures/dzdV_constContour_{outStub}_{expNum}.png')
+        plt.savefig(f'figures/dzdV_constContour_{outstub}_combined.png')
     
     plt.close()
         
     return
 
 @click.command()
-@click.option('--infile', '-i', help="Input .dat file(s)", type=list, prompt=True, multiple=True)
-@click.option('--separate', '-s', help="Plot data on separate plots or same figure", is_flag=True, default=False)
-@click.option('--outStub', '-o', help="Out file name stub", type=str, prompt=True, multiple=False)
+@click.option('--infile', '-i', help="Input .dat file(s)", type=str, prompt=True, multiple=True)
+@click.option('--separate', '-s', help="Plot data on separate plots or same figure. Combined to on eplot if flag not suppplied", is_flag=True, default=False)
+@click.option('--outstub', '-o', help="Out file name stub", type=str, prompt=True, multiple=False)
+# python3 constContour.py -i data/2023-06-20/IV_005.dat -i data/2023-06-20/IV_006.dat -i data/2023-06-20/IV_01\*.dat -o 200623
 
-
-def main(infile, separate, outStub):
-   findRamp(infile, separate, outStub) 
+def main(infile, separate, outstub):
+   findRamp(infile, separate, outstub) 
 
 if __name__=='__main__':
  	main()
