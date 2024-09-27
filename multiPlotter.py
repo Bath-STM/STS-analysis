@@ -1,8 +1,18 @@
+#########################################################
+# Explainations
+# ------------------------------------------------------- 
+# Example command ``
+# -------------------------------------------------------
+# TODO - 
+#########################################################
+
 ##############################################
 # Get same phase in same colour?
+# Use new file reading in commonFunctions
 ##############################################
 
 from glob import glob
+from turtle import right
 import nanonispy as nap
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -44,7 +54,7 @@ def integrate_LI(lI, z):
         runningIntegrand.append(abs(total))
     # print(runningIntegrand)
     # print(pointPairIntegral)
-    return runningIntegrand, pointPairIntegral
+    return np.array(runningIntegrand), np.array(pointPairIntegral)
 
 def lockIn_investigate():
     # specObj  = nap.read.Spec('2023-02-16/Z-Spec_phase_-110.3_001.dat')
@@ -55,48 +65,59 @@ def lockIn_investigate():
     # print(header)
     # sys.exit()
 
-    # datFiles1 = glob('2023-02-24/Z-Spec_phase_1V_7*.dat')
-    # datFiles2 = glob('2023-02-24/Z-Spec_phase_1V_8*.dat')
-    # datFiles3 = glob('2023-02-24/Z-Spec_phase_1V_9*.dat')
-    # datFiles = datFiles1 +  datFiles2 + datFiles3
-    datFiles = glob('2023-02-24/Z-Spec_phase_1V_80_002.dat')
-    # datFiles = glob('2023-02-24/Z-Spec_phase_1V_54.75_002.dat')
-    datFiles.append('2023-02-24/Z-Spec_phase_1V_54.75_002.dat')
+    # inFiles1 = glob('2023-02-24/Z-Spec_phase_1V_7*.dat')
+    # inFiles2 = glob('2023-02-24/Z-Spec_phase_1V_8*.dat')
+    # inFiles3 = glob('2023-02-24/Z-Spec_phase_1V_9*.dat')
+    # inFiles = inFiles1 +  inFiles2 + inFiles3
+    inFiles = ['../firstLooks/data/2023-02-24/Z-Spec_phase_1V_80_002.dat']
+    # inFiles = glob('2023-02-24/Z-Spec_phase_1V_54.75_002.dat')
+    # inFiles.append('2023-02-24/Z-Spec_phase_1V_54.75_002.dat')
 
     # sort by phase value as a number not string
-    datFiles.sort(key=lambda x: float(get_phase(x).split('_')[0]))
-    print(datFiles)
+    # inFiles.sort(key=lambda x: float(get_phase(x).split('_')[0]))
+    
+    # inFiles = ['data/2024-03-27/multi2_Inj_240327_7_1_004.txt']
+    # print(inFiles)
 
-    nFiles = len(datFiles)
-    for datF in datFiles:
-        print(datF)
-        phase = get_phase(datF)
-        print(phase)
-        # sys.exit()
+    nFiles = len(inFiles)
+    for inF in inFiles:
+        print(inF)
+        # phase = get_phase(inF)
+        phase = 'data'
+        # print(phase)
+        # # sys.exit()
 
-        specObj  = nap.read.Spec(datF)
+        # specObj  = nap.read.Spec(inF)
 
-        zData = cf.extract_channel(specObj, 'Z rel (m)')
-        lIXdata = cf.extract_channel(specObj, 'LIX 1 omega (A)')
-        lIXintegratedTotal, lIXintegratedPointPairs = integrate_LI(lIXdata*(10**12), zData*(10**12))
-        lIYdata = cf.extract_channel(specObj, 'LIY 1 omega (A)')
-        Idata = cf.extract_channel(specObj, 'Current (A)')
+        # zData = cf.extract_channel(specObj, 'Z rel (m)')
+        # lIXdata = cf.extract_channel(specObj, 'LIX 1 omega (A)')
+        # lIXintegratedTotal, lIXintegratedPointPairs = integrate_LI(lIXdata*(10**12), zData*(10**12))
+        # lIYdata = cf.extract_channel(specObj, 'LIY 1 omega (A)')
+        # Idata = cf.extract_channel(specObj, 'Current (A)')
+        
+        try:
+            df = cf.extract_file(inF)
+        except ValueError:
+            print('\n############\nPlease check the file path\n############\n')
 
         color = plt.cm.plasma(np.linspace(0.1, 0.9, nFiles))
         mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 
         plt.figure(1)
-        plt.plot(zData*(10**12), lIXdata*(10**12), label=phase)
+        plt.plot(df['height']*(10**12), df['lIX']*(10**12), label=phase)
 
-        plt.figure(2)
-        plt.plot(zData*(10**12), lIYdata*(10**12), label=phase)
+        # plt.figure(2)
+        # plt.plot(df['height']*(10**12), df['lIY']*(10**12), label=phase)
 
         plt.figure(3)
-        plt.plot(zData*(10**12), Idata*(10**12), label=phase)
+        print(df['current']*(10**12))
+        plt.plot(df['height']*(10**12), df['current']*(10**12), 'x', label=phase)
 
+        lIXintegratedTotal, lIXintegratedPointPairs = integrate_LI(df['lIX']*(10**12), df['height']*(10**12))
+        # print(1e-10*np.array(lIXintegratedPointPairs))
         plt.figure(4)
-        # plt.plot(zData[:-1]*(10**12), lIXintegratedPointPairs, label=phase)
-        plt.plot(zData[:-1]*(10**12), lIXintegratedPointPairs/(Idata[:-1]*(10**12)), label=phase)
+        # plt.plot(df['height'][:-1]*(10**12), lIXintegratedPointPairs, label=phase)
+        plt.plot(df['height'][:-1]*(10**12), lIXintegratedPointPairs/(df['current'][:-1]*(10**12)), label=phase)
         
     plt.figure(1)
     plt.xlabel('z (pm)')
@@ -104,7 +125,7 @@ def lockIn_investigate():
     fontP = FontProperties() # Making legend smaller
     fontP.set_size('x-small')
     plt.legend(loc='upper right', prop=fontP)
-    plt.savefig('../figures/lIX_1V_cap.png')
+    plt.savefig('figures/lIX_1V_cap.png')
     plt.close()
 
     plt.figure(2)
@@ -113,7 +134,7 @@ def lockIn_investigate():
     fontP = FontProperties() # Making legend smaller
     fontP.set_size('x-small')
     plt.legend(loc='upper right', prop=fontP)
-    plt.savefig('../figures/lIY_1V_cap.png')
+    plt.savefig('figures/lIY_1V_cap.png')
     plt.close()
 
     plt.figure(3)
@@ -121,8 +142,8 @@ def lockIn_investigate():
     plt.ylabel('I (pA)')
     fontP = FontProperties() # Making legend smaller
     fontP.set_size('x-small')
-    plt.legend(loc='upper right', prop=fontP)
-    plt.savefig('../figures/lI_I_1V_cap.png')
+    # plt.legend(loc='upper right', prop=fontP)
+    plt.savefig('figures/lI_I_1V_cap.png')
     plt.close()
 
     plt.figure(4)
@@ -133,7 +154,7 @@ def lockIn_investigate():
     fontP.set_size('x-small')
     plt.legend(loc='upper right', prop=fontP)
     # plt.savefig('../figures/lI_Ix_1V_cap.png')
-    plt.savefig('../figures/lI_Ix_I_1V_cap.png')
+    plt.savefig('figures/lI_Ix_I_1V_cap.png')
     plt.close()
     
     return
@@ -201,61 +222,179 @@ def capCurrent_investigate():
     return
 
 def kappa_plot():
-    datFiles = glob('2023-03-22/Z-Spec_phase_80.3_-205*.dat')
     
-    datFiles.sort(key=lambda x: float(get_osc_height(x).split('p')[0]))
-    print(datFiles)
+    # inFiles = glob('data/2023-05-10/IV_modA_10mV_*.dat')
+    # Adatom push
+    inFiles = glob('data/2023-03-22/*.dat')
+    # Transfer bromo
+    # inFiles = glob('data/2022-12-14/multi2_Inj_221214_2_[2-4]_*.txt')
+    # Transfer dark noBromo
+    # inFiles = glob('data/2022-12-15/multi2_Inj_221215_1_[3-5]_*.txt')
+    # TRansfer bright noBromo
+    # inFiles = glob('data/2022-12-14/multi2_Inj_221214_1_[1-3]_*.txt')
+    print(inFiles)
+    nFiles = len(inFiles)
     
     kappaList = []
     
-    nFiles = len(datFiles)
-    for datF in datFiles:
+    if inFiles[0].split('.')[-1] == 'dat':
+        print('dat')
         
-        height = get_osc_height(datF)
+        inFiles.sort(key=lambda x: float(get_osc_height(x).split('p')[0]))
+        
+        for datF in inFiles:
+        
+            height = get_osc_height(datF)
 
-        specObj  = nap.read.Spec(datF)
+            specObj  = nap.read.Spec(datF)
 
-        zData = cf.extract_channel(specObj, 'Z rel (m)')
-        lIXdata = cf.extract_channel(specObj, 'LIX 1 omega (A)')
-        lIYdata = cf.extract_channel(specObj, 'LIY 1 omega (A)')
-        Idata = cf.extract_channel(specObj, 'Current (A)')
-        
-        # Check got a spectrum, not tip withdrawn
-        # remove NaNs from the df and check have sufficient data points left
-        # Idata = Idata[~np.isnan(Idata)]
-        # print(Idata)
-        if len(Idata[~np.isnan(Idata)]) < 10:
-            print(f'\n### Not plotted {datF}\n')
-            continue
+            zData = cf.extract_channel(specObj, 'Z rel (m)')
+            # Adatom calibration
+            zData = zData + 750e-12
+            lIXdata = cf.extract_channel(specObj, 'LIX 1 omega (A)')
+            Idata = cf.extract_channel(specObj, 'Current (A)')
+            
+            # Check got a spectrum, not tip withdrawn
+            # remove NaNs from the df and check have sufficient data points left
+            if len(Idata[~np.isnan(Idata)]) < 30:
+                print(f'\n### Not plotted {datF}\n')
+                continue
 
-        color = plt.cm.plasma(np.linspace(0.1, 0.9, nFiles))
-        mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
+            color = plt.cm.plasma(np.linspace(0.1, 0.9, nFiles))
+            mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
+            
+            print(f'\nraw lIX {lIXdata}')
+            print(f'\nDivided lIX {lIXdata/10e-12}')
+            lIXdata = lIXdata/10e-12
+            # sys.exit()
+            
+            # These out by a factor? lIX -> delta I so need to / by delta z (x pm)....
+            # ... this depends what is output in the multi_Inj_xxx.txt files and if 
+            # this scaling by the amplitude is already done...?
+            # delta z = 10pm for most data
+            # kappa = -lIXdata/(2*Idata)
+            # kappa = lIXdata/(2*Idata)
+            kappa = (lIXdata)/(2*Idata)
+            # kappa = -lIXdata/(2*Idata)
+            # kappa = lIXdata/(2*Idata)
+            kappaList.append(kappa)
+            
+            plt.figure(1)
+            plt.plot(1e12*zData, 1e-9*kappa, label=height)
+            
+    elif inFiles[0].split('.')[-1] == 'txt':
+        print('txt')
         
-        # kappa = -lIXdata/(2*Idata)
-        kappa = lIXdata/(2*Idata)
-        kappaList.append(kappa)
+        for wvTxtF in inFiles:
+            try:
+                df = cf.extract_waveTxt(wvTxtF)
+            except ValueError:
+                print('Please check file path')
+                # print(e)
+                
+            zData = df['height']
+            # Optional offset to calibrated height when above dark mol (Bromo).
+            zData = zData + 750e-12
+            # Optional offset to calibrated height when above dark contaminant (noBromo).
+            # zData = zData - 70e-12
+            lIXdata = df['lIX']
+            Idata = df['current']
+            
+            # Check got a spectrum, not tip withdrawn
+            # remove NaNs from the df and check have sufficient data points left
+            if len(Idata[~np.isnan(Idata)]) < 10:
+                print(f'\n### Not plotted {datF}\n')
+                continue
+
+            # color = plt.cm.plasma(np.linspace(0.1, 0.9, nFiles))
+            # mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
+            
+            # These out by a factor? lIX -> delta I so need to / by delta z (x pm)....
+            # ... this depends what is output in the multi_Inj_xxx.txt files and if 
+            # this scaling by the amplitude is already done...?
+            # delta z = 10pm for most data
+            # kappa = -lIXdata/(2*Idata)
+            kappa = lIXdata/(2*Idata)
+            kappa = (lIXdata/10e-12)/(2*Idata)
+            kappaList.append(kappa)
+            
+            plt.figure(1) # plot kappa
+            plt.plot(1e12*zData, 1e-9*kappa, 'k')
+            plt.figure(2) # plot raw current
+            plt.plot(1e12*zData, 1e12*Idata)
+            plt.figure(3) # plot effective barrier/ work function
+            # kappa = sqrt(2 m_e phi)/ hbar
+            # (kappa * hbar)^2 / 2 m_e
+            hbar = 6.626e-34 / (2*np.pi)
+            m_e = 9.109e-31
+            e = 1.602e-19
+            phi_eff = (kappa * hbar)**2 / (2*m_e)
+            plt.plot(1e12*zData, phi_eff/e)
         
-        plt.figure(1)
-        plt.plot(zData*(10**12), kappa, label=height)
-        
+    else:
+        print('\nUnknown file type - exiting\n')
+        sys.exit(1)
+    
     plt.figure(1)
-    plt.xlabel('z (pm)')
-    plt.ylabel('kappa')
+    plt.xlabel('z (pm)', fontsize=20)
+    plt.ylabel(r'$\kappa$ (nm$^{-1}$)', fontsize=20)
+    # plt.xlim(-180, 60) # scaled for darkBromo
+    plt.xlim(520, 800)
+    plt.ylim(bottom=0)
+    plt.xticks(fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.tight_layout()
+    # plt.yscale('log')
     fontP = FontProperties() # Making legend smaller
     fontP.set_size('x-small')
-    plt.legend(loc='upper right', prop=fontP)
-    plt.savefig('../figures/kappa.png')
+    # plt.legend(loc='upper right', prop=fontP)
+    plt.savefig('figures/kappa_230322_push.png')
+    # plt.savefig('figures/kappa_cleanFC_Bromo_221214.png')
+    # plt.savefig('figures/kappa_darkFC_noBromo_221215.png')
+    plt.close()
+    
+    plt.figure(2)
+    plt.xlabel('z (pm)', fontsize=20)
+    plt.ylabel('I (pA)', fontsize=20)
+    # plt.xlim(-180, 60) # scaled for darkBromo
+    plt.xlim(-190, 110)
+    plt.ylim(bottom=3)
+    plt.tight_layout()
+    plt.yscale('log')
+    fontP = FontProperties() # Making legend smaller
+    fontP.set_size('x-small')
+    # plt.legend(loc='upper right', prop=fontP)
+    # plt.savefig('figures/kappa_230322_push.png')
+    # plt.savefig('figures/kappa_cleanFC_Bromo_221214.png')
+    # plt.savefig('figures/current_darkFC_Bromo_221214.png')
+    plt.close()
+    
+    plt.figure(3)
+    plt.xlabel('z (pm)', fontsize=20)
+    plt.ylabel(r'$\phi_{eff}$ (eV)', fontsize=20)
+    # plt.xlim(-180, 60) # scaled for darkBromo
+    plt.xlim(-190, 110)
+    # plt.ylim(bottom=3)
+    plt.tight_layout()
+    # plt.yscale('log')
+    fontP = FontProperties() # Making legend smaller
+    fontP.set_size('x-small')
+    # plt.legend(loc='upper right', prop=fontP)
+    # plt.savefig('figures/kappa_230322_push.png')
+    # plt.savefig('figures/kappa_cleanFC_Bromo_221214.png')
+    # plt.savefig('figures/phiEff_darkFC_Bromo_221214.png')
     plt.close()
 
-    print(kappaList)
+    # print(kappaList)
     
     return
 
 
 def lDOS_plot():
     
-    waveTxtFiles = glob('data/2023-06-20/multi2_Inj_230620_6_*.txt')
-    
+    waveTxtFiles = glob('data/2023-07-11/multi2_Inj_230711_1_*.txt')
+    waveTxtFiles += glob('data/2023-07-11/multi2_Inj_230711_5_*.txt')
+    print(waveTxtFiles)
     outerLDOS = [] # hold the LDOS for each point in each experiment
     
     for wvTxtF in waveTxtFiles:
@@ -269,6 +408,8 @@ def lDOS_plot():
         fName = fPath.split('/')[-1]
         aveFileName = fName.split("_")[2] + '_' + fName.split("_")[3]
         
+        print(aveFileName)
+        
         # find where current is below noise thresh 
         currentMask = abs(df['current']) < 5e-12
         # set current in this case to 0 as done in Feenstra, Phys. Rev. B, 1994 
@@ -278,27 +419,30 @@ def lDOS_plot():
         fig1 = plt.figure(1, figsize=(5.75, 8))
         ax_dIdV, ax_IV, ax_LDOS = fig1.subplots(3, 1, sharex=True)
         
-        ax_IV.plot(df['bias'], 10e12*df['current']/df['bias'], label='Raw')
+        ax_IV.plot(df['bias'], 1e12*df['current']/df['bias'], label='Raw')
         
         # Still following Feenstra, convolve I/V with gaussian - width should be O(band gap)
         df['smoothCond'] = (ndimage.gaussian_filter1d(df['current']/df['bias'], 1.2))
         # print(df['smoothCond'].to_string())
         
-        ax_IV.plot(df['bias'], 10e12*df['smoothCond'], label='Smoothed')
+        ax_IV.plot(df['bias'], 1e12*df['smoothCond'], label='Smoothed')
         ax_IV.set_ylabel('Conductance (pA/V)')
         ax_IV.set_ylim(bottom=0)
         fontP = FontProperties() # Making legend smaller
         fontP.set_size('x-small')
         ax_IV.legend(loc='lower right', prop=fontP)
         
-        # Not following Feenstra, smooth dI/dV
+        # Not following Feenstra, optionally smooth dI/dV
         df['smoothLIX'] = (ndimage.gaussian_filter1d(df['lIX'], 1))
         
         ax_dIdV.plot(df['bias'], df['lIX'])
+        # ax_dIdV.plot(df['bias'], df['smoothLIX'], label='Smoothed')
         ax_dIdV.set_ylabel('dI/dV (pA/V)')
-        ax_dIdV.set_yscale('log')
+        # ax_dIdV.set_yscale('log')
+        # ax_dIdV.legend(loc='lower right', prop=fontP)
         
         lDOS = df['lIX']/df['smoothCond']
+        # lDOS = df['smoothLIX']/df['smoothCond']
         ax_LDOS.plot(df['bias'], lDOS)
         ax_LDOS.set_ylabel(r'(dI/dV)/$\overline{(I/V)}$')
         ax_LDOS.set_ylim(0, 10)
@@ -320,13 +464,18 @@ def lDOS_plot():
     lDOSdf = pd.DataFrame(outerLDOS).T
     lDOSdf['mean'] = lDOSdf.mean(axis=1)
     
+    print(lDOSdf)
     
-    plt.figure(2)
+    # plt.figure(2)
+    plt.figure(2, figsize=(5,3), dpi=600)
     plt.plot(df['bias'], lDOSdf['mean'])
     plt.ylabel(r'(dI/dV)/$\overline{(I/V)}$')
     plt.xlabel('Bias (V)')
     # plt.ylim(0, 15)
+    plt.ylim(top=8)
+    plt.tight_layout()
     plt.savefig(f'figures/ave_lDOS_{aveFileName}.png')
+    plt.savefig(f'figures/ave_lDOS_{aveFileName}.pdf')
     plt.close()
     
     return
@@ -334,10 +483,10 @@ def lDOS_plot():
 
 def main():
     
-    # lockIn_investigate()
+    lockIn_investigate()
     # capCurrent_investigate()
     # kappa_plot()
-    lDOS_plot()
+    # lDOS_plot()
     
 
 if __name__=='__main__':
