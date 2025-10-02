@@ -188,7 +188,7 @@ def collect_groups_to_df(groups, outstub=None, outcsv=False):
 
     Returns
     -------
-    pandas.DataFrame
+    df : pandas.DataFrame
         A DataFrame with one row per file and columns:
         ["inFile", "source", "zcalib"].
     """
@@ -230,7 +230,7 @@ def process_groups(ctx, results, **kwargs):
 
     Returns
     -------
-    pandas.DataFrame
+    df : pandas.DataFrame
         The combined DataFrame with one row per input file.
 
     Raises
@@ -293,15 +293,11 @@ def izPlot(iZfilesdf, outstub):
         
         expBiasList.append(round(dfZ['bias'].mean(), 1))
     iZfilesdf['bias'] = expBiasList
-    # print(iZfilesdf.to_string())
-    # sys.exit()
     
     # Generate unique sources and voltages
     sources = sorted(set(iZfilesdf['source']))
     voltages = sorted(set(iZfilesdf['bias']))
     nCombinations = len(sources)*len(voltages)
-    # print(sources)
-    # print(voltages)
     
     for source in sources:
         for voltage in voltages:
@@ -437,10 +433,7 @@ def izPlot(iZfilesdf, outstub):
     plt.xlabel('z (pm)', fontsize=20)
     plt.ylabel(r'$\kappa$ (nm$^{-1}$)', fontsize=20)
     plt.xlim(250, 890)
-    # plt.ylim(top=13.5)
-    # plt.ylim(0, 13)
     plt.tight_layout()
-    # plt.yscale('log')
     fontP = FontProperties() # Making legend smaller
     fontP.set_size('small')
     handles, labels = plt.gca().get_legend_handles_labels()
