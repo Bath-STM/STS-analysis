@@ -14,8 +14,8 @@
 # Command-line structure (Click CLI):
 # -----------------------------------
 # Top-level options (apply globally):
-#   -o / --outstub <str>     : Output filename stub (required).
-#   -ocsv                    : If set, write input metadata table to figures/<outstub>.csv.
+#   -o / --outstub <str>      : Output filename stub (required).
+#   -ocsv / --outcsv          : If set, write input metadata table to figures/<outstub>.csv.
 #
 # Group subcommands (repeatable, chainable):
 #   group -i <files...> -s <source> -c <zcalib>
@@ -303,7 +303,7 @@ def izPlot(iZfilesdf, outstub):
         for voltage in voltages:
             mask = (iZfilesdf['source']==source) & (iZfilesdf['bias']==voltage)
             
-            print(f'\n###\nProcessing {source} data at {voltage} V.\n###\n')
+            print(f'\n### Processing {source} data at {voltage} V. ###')
             
             outerHeight = [] # hold the relative tip height for each point in each experiment
             outerCurrent = [] # hold the current for each point in each experiment
@@ -324,7 +324,7 @@ def izPlot(iZfilesdf, outstub):
                 # Check got a sufficient spectrum, not tip withdrawn
                 # remove NaNs from the df and check have sufficient data points left
                 if len(dfZ['current'][~np.isnan(dfZ['current'])]) < 30:
-                    print(f'\n### Not plotted {inFileZ}. Insufficient data points.\n')
+                    print(f'\n### Not plotted "{inFileZ[0]}". Insufficient data points.\n')
                     continue
                 
                 # Calibrate z data
